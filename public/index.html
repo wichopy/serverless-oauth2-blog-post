@@ -9,12 +9,9 @@
     <script defer src="/__/firebase/5.9.3/firebase-app.js"></script>
     <!-- include only the Firebase features as you need -->
     <script defer src="/__/firebase/5.9.3/firebase-auth.js"></script>
-    <script defer src="/__/firebase/5.9.3/firebase-database.js"></script>
-    <script defer src="/__/firebase/5.9.3/firebase-messaging.js"></script>
-    <script defer src="/__/firebase/5.9.3/firebase-storage.js"></script>
+    <script defer src="/__/firebase/5.9.3/firebase-firestore.js"></script>
     <!-- initialize the SDK after all desired features are loaded -->
     <script defer src="/__/firebase/init.js"></script>
-
     <style media="screen">
       body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
       #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
@@ -29,13 +26,14 @@
         body { border-top: 16px solid #ffa100; }
       }
     </style>
+
   </head>
   <body>
     <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+      <h1>OAuth 2 Flow</h1>
+      <p id="user-message"></p>
+      <div id="step-counts"></div>
+      <a id="auth-button" target="_blank" ></a>
     </div>
     <p id="load">Firebase SDK Loading&hellip;</p>
 
@@ -53,12 +51,55 @@
 
         try {
           let app = firebase.app();
-          let features = ['auth', 'database', 'messaging', 'storage'].filter(feature => typeof app[feature] === 'function');
+          let features = ['auth', 'database', 'firestore', 'messaging', 'storage'].filter(feature => typeof app[feature] === 'function');
           document.getElementById('load').innerHTML = `Firebase SDK loaded with ${features.join(', ')}`;
         } catch (e) {
           console.error(e);
           document.getElementById('load').innerHTML = 'Error loading the Firebase SDK, check the console.';
         }
+        var provider = new firebase.auth.GoogleAuthProvider();
+        
+        function onSigninClick () {
+          firebase.auth().signInWithPopup(provider).then(function (result) {
+            console.log('Auth resposne from firebase:', result)
+          })
+        }
+
+        function onSignoutClick () {
+          firebase.auth().signOut().then(function() {
+            console.log('Signout successful')
+          })
+        }
+
+        let authButton = document.getElementById("auth-button")
+        let userMessage = document.getElementById('user-message')
+        
+        firebase.auth().onAuthStateChanged(function(user) {
+          if (user) {
+            console.log('auth state change, signed in!', user)
+            // User is signed in.
+            var displayName = user.displayName;
+            var email = user.email;
+            var emailVerified = user.emailVerified;
+            var photoURL = user.photoURL;
+            var isAnonymous = user.isAnonymous;
+            var uid = user.uid;
+            var providerData = user.providerData;
+            // ...
+            
+            authButton.innerText = 'Logout'
+            authButton.removeEventListener('click', onSigninClick)
+            authButton.addEventListener('click', onSignoutClick)
+            authButton.innerText = 'Logout'
+            userMessage.innerText = "Hello, " + displayName
+          } else {
+            console.log('auth state change, signed out :(')
+            authButton.removeEventListener('click', onSignoutClick)
+            authButton.addEventListener('click', onSigninClick)
+            authButton.innerText = 'Login'
+            userMessage.innerText = "Sign in and look around"
+          }
+        });
       });
     </script>
   </body>
