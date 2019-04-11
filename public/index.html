@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Welcome to Firebase Hosting</title>
 
+    <script src="https://apis.google.com/js/api.js"></script>
+
     <!-- update the version number as needed -->
     <script defer src="/__/firebase/5.9.3/firebase-app.js"></script>
     <!-- include only the Firebase features as you need -->
@@ -12,13 +14,15 @@
     <script defer src="/__/firebase/5.9.3/firebase-firestore.js"></script>
     <!-- initialize the SDK after all desired features are loaded -->
     <script defer src="/__/firebase/init.js"></script>
+
     <style media="screen">
       body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
       #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
       #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
       #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
       #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
+      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; cursor: pointer; }
+      #message a.fetch { display: inline-block; background: rgb(248, 17, 17); margin: 6px 0px; }
       #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
       #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
       @media (max-width: 600px) {
@@ -32,7 +36,8 @@
     <div id="message">
       <h1>OAuth 2 Flow</h1>
       <p id="user-message"></p>
-      <div id="step-counts"></div>
+      <a class="fetch" target="_blank">Fetch</a>
+      <pre><div id="fetch-response"></div></pre>
       <a id="auth-button" target="_blank" ></a>
     </div>
     <p id="load">Firebase SDK Loading&hellip;</p>
@@ -57,11 +62,83 @@
           console.error(e);
           document.getElementById('load').innerHTML = 'Error loading the Firebase SDK, check the console.';
         }
-        var provider = new firebase.auth.GoogleAuthProvider();
         
+        // We can only have an access token after a user enters their credentials.
+        let accessToken
+        let firebaseUser
+
+        var provider = new firebase.auth.GoogleAuthProvider();
+        // Add a scope for an api you want to grab data from. In this example we are reading google calendar events for your main calendar.
+        provider.addScope('https://www.googleapis.com/auth/calendar.events.readonly');
+
+        const fetchButton = document.querySelector('a.fetch')
+        const fetchResponse = document.querySelector('#fetch-response')
+
+        // This function adds an access token to the google api client if available, otherwise it will reask you for your credentials.
+        function authenticateGoogleAPI () {
+          return new Promise((resolve, reject) => {
+            if (!accessToken) {
+              // Reentering the app as a logged in firebase user, we need to reauth to get a new access token.
+              firebaseUser.reauthenticateWithPopup(provider).then(result => {
+                console.log('reauthenticate result', result)
+                accessToken = result.credential.accessToken
+                gapi.client.setToken({
+                  access_token: accessToken
+                })
+                resolve()
+              }) 
+            } else {
+              // Already have access token from logging in
+              gapi.client.setToken({
+                access_token: accessToken
+              })
+              resolve()
+            }
+          })
+        }
+
+        /*
+         * Google API
+         * */ 
+        function onGapiLoad () {
+          // Enable the api you want to use in the developer console
+          // https://console.developers.google.com/apis/library/
+          function fetchData () {
+            authenticateGoogleAPI().then(() => {
+              gapi.client.request({
+                // Pick an endpoint based on the scope and api you defined.
+                path: 'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+                method: 'GET'
+              }).then(result => {
+                console.log(result)
+                fetchResponse.innerText = result.body
+              })
+            })
+          }
+
+          gapi.client.init({
+            'apiKey': 'AIzaSyBWLnDa3OxY_QNenfQ-ikkRNLur9jFsoUA',
+            // clientId and scope are optional if auth is not required.
+            'clientId': '315834859490-9aibgf8ofbop7h0o050nahkpb01272ac.apps.googleusercontent.com',
+            'scope': 'profile https://www.googleapis.com/auth/calendar.events.readonly',
+          }).then(function() {
+            // 3. Initialize and make the API request.
+            console.log('google api initialized')
+            fetchButton.addEventListener('click', fetchData)
+            
+          });
+        }
+
+        // 1. Load the JavaScript client library.
+        gapi.load('client', onGapiLoad);
+
+        /*
+         *  Firebase
+         * */
         function onSigninClick () {
           firebase.auth().signInWithPopup(provider).then(function (result) {
             console.log('Auth resposne from firebase:', result)
+            accessToken = result.credential.accessToken
           })
         }
 
@@ -85,8 +162,8 @@
             var isAnonymous = user.isAnonymous;
             var uid = user.uid;
             var providerData = user.providerData;
-            // ...
-            
+            firebaseUser = user
+
             authButton.innerText = 'Logout'
             authButton.removeEventListener('click', onSigninClick)
             authButton.addEventListener('click', onSignoutClick)
@@ -102,5 +179,6 @@
         });
       });
     </script>
+    
   </body>
 </html>
