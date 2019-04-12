@@ -23,6 +23,7 @@
       #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
       #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; cursor: pointer; }
       #message a.fetch { display: none; background: rgb(248, 17, 17); margin: 6px 0px; }
+      #message a.grant-offline { display: none; }
       #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
       #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
       @media (max-width: 600px) {
@@ -38,6 +39,7 @@
       <p id="user-message"></p>
       <a class="fetch" target="_blank">Fetch</a>
       <pre><div id="fetch-response"></div></pre>
+      <a class="grant-offline" target="_blank">Grant Offline Access</a>
       <a id="auth-button" target="_blank" ></a>
     </div>
     <p id="load">Firebase SDK Loading&hellip;</p>
@@ -68,10 +70,12 @@
         let firebaseUser
 
         var provider = new firebase.auth.GoogleAuthProvider();
+        const calendarEventsScope = 'https://www.googleapis.com/auth/calendar.events.readonly'
         // Add a scope for an api you want to grab data from. In this example we are reading google calendar events for your main calendar.
-        provider.addScope('https://www.googleapis.com/auth/calendar.events.readonly');
+        provider.addScope(calendarEventsScope);
 
         const fetchButton = document.querySelector('a.fetch')
+        const grantOfflineButton = document.querySelector('a.grant-offline')
         const fetchResponse = document.querySelector('#fetch-response')
         const authButton = document.getElementById("auth-button")
         const userMessage = document.getElementById('user-message')
@@ -120,20 +124,29 @@
               })
           }
 
+          function openConsentWindow() {
+            gapi.auth2.getAuthInstance().grantOfflineAccess({
+              scope: calendarEventsScope
+            }).then(res => {
+              console.log(res)
+            })
+          }
+
           gapi.client.init({
             'apiKey': 'AIzaSyBWLnDa3OxY_QNenfQ-ikkRNLur9jFsoUA',
             // clientId and scope are optional if auth is not required.
             'clientId': '315834859490-9aibgf8ofbop7h0o050nahkpb01272ac.apps.googleusercontent.com',
-            'scope': 'profile https://www.googleapis.com/auth/calendar.events.readonly',
+            'scope': ['profile',calendarEventsScope].join(' ')
           }).then(function() {
             // 3. Initialize and make the API request.
             console.log('google api initialized')
             fetchButton.addEventListener('click', fetchData)
+            grantOfflineButton.addEventListener('click', openConsentWindow)
           });
         }
 
         // 1. Load the JavaScript client library.
-        gapi.load('client', onGapiLoad);
+        gapi.load('client:auth2', onGapiLoad);
 
         /*
          *  Firebase
@@ -170,6 +183,7 @@
             authButton.innerText = 'Logout'
             userMessage.innerText = "Hello, " + displayName
             fetchButton.style.display = 'inline-block'
+            grantOfflineButton.style.display = 'inline-block'
           } else {
             console.log('auth state change, signed out :(')
             authButton.removeEventListener('click', onSignoutClick)
@@ -177,6 +191,7 @@
             authButton.innerText = 'Login'
             userMessage.innerText = "Sign in and look around"
             fetchButton.style.display = 'none'
+            grantOfflineButton.style.display = 'none'
           }
         });
       });
