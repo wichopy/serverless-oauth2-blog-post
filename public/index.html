@@ -253,7 +253,7 @@
         function fetchDataOffline() {
           getUserIdToken()
             .then(idToken => {
-              return fetch(`http://localhost:5001/oauth-flows/us-central1/events?idToken=${idToken}&refreshToken=${firebaseUser.refreshToken}`)
+              return fetch(`http://localhost:5001/oauth-flows/us-central1/events?idToken=${idToken}`)
             })
             .then(response => {
               console.log(response)
@@ -299,6 +299,13 @@
           console.log('Auth resposne from firebase:', result)
           setAccessToken(result.credential.accessToken)
         })
+          .then(response => {
+            console.log(response)
+            return response.text()
+          })
+          .then(json => {
+            console.log(json)
+          })
       }
 
       function onSignoutClick() {

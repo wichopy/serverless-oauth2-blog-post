@@ -90,10 +90,13 @@ exports.offlineGrant = functions.https.onRequest(async (request, response) => {
 
 })
 
+const extractUid = async (idToken) => {
+  const userInfo = await app.auth().verifyIdToken(idToken)
+  return userInfo.uid
+}
+
 exports.events = functions.https.onRequest(async (request, response) => {
-  let refreshToken
   const { idToken } = request.query
-  refreshToken = request.query.refreshToken
   response.set('Access-Control-Allow-Origin', '*');
   if (!idToken) {
     response.status(400).send('Missing id token')
@@ -115,11 +118,7 @@ exports.events = functions.https.onRequest(async (request, response) => {
     response.status(400).send('No credentials saved for this user.')
     return
   }
-
-  if (!refreshToken) {
-    refreshToken = user.data().refreshToken
-  }
-
+  const refreshToken = user.data().refreshToken
   console.log('refresh token', refreshToken)
   oauth2Client.setCredentials({ refresh_token: refreshToken })
 
