@@ -109,13 +109,20 @@ This is a good intro, lets do some actual API requests now.
 
 https://github.com/wichopy/serverless-oauth2-blog-post/compare/google-signin...google-api-request
 
-Lets use firebase's auth and add additional scopes so we can get an access token that will read from one of google's many apis. In this example, we will read google calendar events.
+Lets use Firebase's google auth implmentation and add additional scopes so we can get an access token that will read from one of google's many apis. In this example, we will read google calendar events.
 
-Before we can do this, we need to enable the Calendar api in this project.
+Before we can do this, we need to add the gapi javascript library to our html and enable the Calendar API in this project.
+Add to our `head` tag:
+```diff
+  + <script src="https://apis.google.com/js/api.js"></script>
+```
 
+To add apis to a google / firebase project:
 https://console.developers.google.com/apis/library/
 
-Afte enabling, we will need to add the events scope to our google auth provider.
+Adding an api to a project will let google know that your client ID / api keys will be able to request access to the APIs we enabled.
+
+After enabling, we will need to add the events scope to our google auth provider.
 
 ```javascript
         var provider = new firebase.auth.GoogleAuthProvider();
@@ -125,7 +132,15 @@ Afte enabling, we will need to add the events scope to our google auth provider.
 
 ```
 
-The scope is needed so when the user provides their credentials, they will also be notified of what data you are trying to access, and includes their permission for you to access their data when they click accept.
+This scope is needed so when the user provides their credentials, they will also be notified of what data you are trying to access, which will give us permission to access their data after they click accept.
+
+This is what the user will see when trying to login after adding the calendar events scope.
+
+![Screen-Shot-2019-04-21-at-5.47.30-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-21-at-5.47.30-PM.png)
+
+![Screen-Shot-2019-04-21-at-5.47.37-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-21-at-5.47.37-PM.png)
+
+Now that we added the scope, we can add the code to make an api request after we get an access token:
 
 ```javascript
 // This function adds an access token to the google api client if available, otherwise it will ask you for your credentials again.
@@ -183,8 +198,31 @@ function onGapiLoad () {
 // 1. Load the JavaScript client library.
 gapi.load('client', onGapiLoad);
 ```
+The key blobs to look at are:
 
-Notice the `authenticateGoogleAPI` function? We only get an access token when we enter our credentials into the pop up. If an auth session exists already when your user reenters the app, they will need to re-enter their credentials in the pop up in order to get a new access token. 
+```javascript
+  gapi.client.setToken({
+    access_token: accessToken
+  })
+```
+
+and 
+
+```javascript
+    return gapi.client.request({
+      // Pick an endpoint based on the scope and api you defined.
+      path: 'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+      method: 'GET'
+    })
+```
+
+`setToken` Add the access token to our google client, essentially authenticating it to make api requests.
+
+`request` Uses the access token that we set and adds it to request HEADers for us, abstracting this low level api so we can focus on what we really want, the data.
+
+The request for google calendar events was quite simple but you will need to look up the API you want to interact with to figure out what the request will look like. You may need to include required params in the `body` field in order to have a successful request. You should be able to find what you are looking for with a quick google search. For example, [this](https://developers.google.com/calendar/v3/reference/events/list) is what I used to construct the path seens above.
+
+Did you notice the `authenticateGoogleAPI` function? We only get an access token when we enter our credentials into the pop up. If an auth session exists already when your user reenters the app, they will need to re-enter their credentials in the pop up in order to get a new access token. 
 
 This flow works for some use cases, but most likely we would want our users to just authenticate once and be able to access their data as long as they are logged in. Lets look at how to do this in the next section. 
 
