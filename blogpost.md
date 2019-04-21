@@ -1,4 +1,4 @@
-### Intro
+## Intro
 
 While working on QUID's core features we're simultaneously testing them out on our own experiemental app ideas. Apps today have the luxury of being able to easily talk to each other using API's. Popular companies such as github, google, and facebook make it really easy for developers to securely access a user's data. The main driving technology behind this is OAuth2.
 
@@ -6,26 +6,26 @@ This post will be looking at how to implement auth in a serverless architecture.
 
 Its important to note that whenever a third party maintained OAuth2 client is available, it should be used instead of trying to implement it on your own. OAuth2 is a standard but providers may have their own implementations that differ from others. Instead of trying to re invent the wheel I prefer to just hop in the car and drive.
 
-### Pre-Requesites
+## Pre-Requesites
 
 * If you know nothing about OAuth2, or want a refresher, watch [this video](https://www.youtube.com/watch?v=996OiexHze0)
 * Create a [Firebase](https://firebase.google.com/) account.
 * Your dev environment will need Node v8 or higher and git.
 
 
-### Preface
+## Preface
 The full source code can be found [here](https://github.com/wichopy/serverless-oauth2-blog-post.git). Branches were made for each section so we can following along with with git diffs. I recommended following along with the blog post/git repo, and trying to implement the flows on your own after.
 
 The flows we will explore:
-* Client side authorization
-* Client side authenticated API requests
-* Server side authenticated API requests
-* Client side authenticated API requests using server generated access tokens
-* Periodic API calls using Cloud Scheduler.
+1. Client side authorization
+2. Client side authenticated API requests
+3. Server side authenticated API requests
+4. Client side authenticated API requests using server generated access tokens
+5. Periodic API calls using Cloud Scheduler.
 
 Lets get started!
 
-### Setup
+## Setup
 
 First you will need to clone the demo repo so we can run things locally.
 ```bash
@@ -48,7 +48,7 @@ In the first prompt, select functions, hosting and firestore. In the next prompt
 
 The github repo's master branch will show what we have after this initialization. We will go into the first branch to see our first flow. 
 
-### Client side authorization
+## 1. Client side authorization
 
 `git checkout google-signin`
 
@@ -103,7 +103,7 @@ Why do we have an ID token? If you watched the video linked above, its discussed
 
 This is a good intro, lets do some actual API requests now.
 
-### Client side API requests
+## 2. Client side API requests
 
 `git checkout google-api-requests`
 
@@ -226,13 +226,13 @@ Did you notice the `authenticateGoogleAPI` function? We only get an access token
 
 This flow works for some use cases, but most likely we would want our users to just authenticate once and be able to access their data as long as they are logged in. Lets look at how to do this in the next section. 
 
-### Server side API requests 
+## 3. Server side API requests 
 
 `git checkout offline-api-requests`
 
 In OAuth2 terms, being able to access a user's data while they are away from the app is called *offline access*. We will use this mechanism to improve our user experience.
 
-On the client, we will use the gapi grantOfflineAccess method to start this flow.
+On the client, we will use the gapi `grantOfflineAccess` method to start this flow.
 ```javascript
 function openConsentWindow() {
     gapi.auth2.getAuthInstance().grantOfflineAccess({
@@ -243,7 +243,8 @@ function openConsentWindow() {
 }
 ```
 
-#### cloud functions
+#### Cloud Functions have entered the game
+
 We will make our own microservice using cloud functions. These cloud functions can be run in your local env using the firebase cli command `firebase serve --only functions`. We should do all our development using the emulator so we don't eat into our quotas and if you don't have billing set up, your cloud functions cannot make api requests outside of the firebase realm.
 
 Lets take a look at our first cloud function which will be used to accept the access code returned from the grantOfflineAccess response.
@@ -252,22 +253,24 @@ Lets take a look at our first cloud function which will be used to accept the ac
 const admin = require("firebase-admin");
 const { google } = require('googleapis');
 
- const googleSecrets = require("./google-secrets.json");
+// From google api credentials: https://console.cloud.google.com/apis/credentials/ , go to the web client ID and download the JSON
+const googleSecrets = require("./google-secrets.json");
+// From firebase console: https://console.firebase.google.com/project/[YOUR PROJECT ID]/settings/serviceaccounts/adminsdk
 const serviceAccount = require("./oauth-flows-service-key.json");
 
- const clientId = googleSecrets.web.client_id
+const clientId = googleSecrets.web.client_id
 const clientSecret = googleSecrets.web.client_secret
 // Don't use an actual redirect uri from our list of valid uri's. Instead, it needs to be postmessage.
 // https://stackoverflow.com/a/48121098/7621726
 const redirectUri = 'postmessage'
 
- const oauth2Client = new google.auth.OAuth2(
+const oauth2Client = new google.auth.OAuth2(
   clientId,
   clientSecret,
   redirectUri
 );
 
- const app = admin.initializeApp({
+const app = admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://oauth-flows.firebaseio.com"
 });
@@ -283,7 +286,7 @@ const getToken = (code) => {
   })
 }
 
- exports.offlineGrant = functions.https.onRequest(async (request, response) => {
+exports.offlineGrant = functions.https.onRequest(async (request, response) => {
   const { code, uid } = request.query
 
    if (!code) {
@@ -306,7 +309,7 @@ const getToken = (code) => {
 ```
 
 Great, we requested for a user's credentials and saved them to our database.
-Now whenever we want to access their data, all we need to do is grab the refresh token, pass it to the google api client, and call the api endpoint the token is has available scopes to. This is what it would look like with our calendar events example.
+Now whenever we want to access their data, all we need to do is grab the refresh token, pass it to the google api client, and call the api endpoint the token is scoped to. This is what it would look like with our calendar events example.
 
 ```javascript
  exports.events = functions.https.onRequest(async (request, response) => {
@@ -341,15 +344,45 @@ Now whenever we want to access their data, all we need to do is grab the refresh
 })
 ```
 
-Note, you might have noticed a refresh token is availble on the firebase auth user object o nthe frontend. You can try creating a new access token using this refresh token, but it  will not work with googleapis as firebase took our id token from the google login and made their own token with it.
+Note, remember the refresh token on the firebase auth user object on the frontend? It will not work with googleapis as firebase took our ID token from the google login and made their own custom tokens with it. We need to use a refresh token created by our auth code and client secret in order to access a user's data offline.
 
-### Client side authenticated API requests using server generated access tokens
+#### Authenticating Server Side API Request using ID Tokens
+
+In the previous request, we passed a `uid` to our endpoint. We should not transmit a user ID this way as its not safe. How then, can we authenticate a request to our server and know that it was done by someone logged into our firebase app? One way to do it is by using the ID token.
+
+The ID Token can be verified by publicly facing cloud functions before performing an authenticated API request. There is a handy firebase method to perform this check, `verifyIdToken`.
+
+```javascript
+  // Helper function.
+  const extractUid = async (idToken) => {
+    const userInfo = await app.auth().verifyIdToken(idToken)
+    return userInfo.uid
+  }
+
+  // Inside publicly accessible cloud fucntions:
+  const { idToken } = request.query
+  response.set('Access-Control-Allow-Origin', '*');
+  if (!idToken) {
+    response.status(400).send('Missing id token')
+    return
+  }
+
+  let uid
+  try {
+    uid = await extractUid(idToken)
+  } catch (err) {
+    response.status(400).send('Error verifying id token')
+    return
+  }
+```
+
+## 4. Client side authenticated API requests using server generated access tokens
 
 `git checkout request-client-access-token`
 
-Making api calls with cloud functions will add to your free quota. Depending how frequently you want to access these api calls, it might make more sense to let your frontend client make the calls using the method we outlined in Client side API Requests, by passing an access token to the `gapi` client. With our stored refresh token, we can now make access tokens on demand without having to ask the user to reauthenticate.
+Making api calls with cloud functions will add to your free quota. Depending how frequently you want to access these api calls, it might make more sense to let your frontend client make the calls using the method we outlined in Client side API Requests, by setting an access token to the `gapi` client. With our stored refresh token, we can now make access tokens on demand without having to ask the user to reauthenticate.
 
-```
+```javascript
 exports.tokens = functions.https.onRequest(async (request, response) => {
   const { idToken } = request.query
   response.set('Access-Control-Allow-Origin', '*');
@@ -360,8 +393,7 @@ exports.tokens = functions.https.onRequest(async (request, response) => {
 
    let uid
   try {
-    const userInfo = await extractUid(idToken)
-    uid = userInfo.uid
+    uid = await extractUid(idToken)
   } catch (err) {
     response.status(400).send('Error verifying id token')
     return
@@ -375,7 +407,7 @@ exports.tokens = functions.https.onRequest(async (request, response) => {
     return
   }
 
-   const refreshToken = user.data().refreshToken
+  const refreshToken = user.data().refreshToken
   console.log('refresh token', refreshToken)
   oauth2Client.setCredentials({ refresh_token: refreshToken })
   const accessToken = await oauth2Client.getAccessToken()
@@ -385,19 +417,23 @@ exports.tokens = functions.https.onRequest(async (request, response) => {
 
 Now simply use this access token like we did in the Client Side API Requests section, except now we don't need to reauthenticate the user everytime they return to the app!
 
-### Periodic API Requests
+## 5. Periodic API Requests
 
-We've covered calling API's from a frontend client and on the server, but how about if we want to call an API at a regular interval. An example of this is calling the google fitness API everyday to get a user's previous day's step count for your next awesome fitness app. With cloud functions and GCP's Cloud scheduler it couldn't be any easier.
+We've covered different ways for calling API's from a frontend client and on the server, but how about if we want to call an API at a regular interval. An example of this is calling the google fitness API everyday to get a user's previous days step count for your next awesome fitness app. With cloud functions and GCP's Cloud scheduler it couldn't be any easier.
 
 * Create pubsub cloud func
 * Create pubsub topic
 * Create cloud scheduler job
 
-### Conclusion
+## Conclusion
 
-OAuth2 is very difficult when you first start digging into it. I hope these flows will help you get a better grasp of its concepts and help you make some awesome apps. I look forward to any feedback 
+We live a golden age right now where its easier than ever to talk to APIs. With these practical examples of how to auth and make API calls, I hope this post has inspired you with some techniques for making your next app. 
 
-Happy hacking!
+In future posts I would like to exapnd on these topics more by:
+* Implementing our own OAuth2 mechanism using cloud functions
+* Make a medium complexity application that extensively uses OAuth2 and cloud services
+
+Until then, happy hacking!
 
 Will.
 
