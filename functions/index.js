@@ -113,7 +113,7 @@ exports.events = functions.https.onRequest(async (request, response) => {
     response.status(400).send('No credentials saved for this user.')
     return
   }
-    const refreshToken = user.data().refreshToken
+  const refreshToken = user.data().refreshToken
   console.log('refresh token', refreshToken)
   oauth2Client.setCredentials({ refresh_token: refreshToken })
 
