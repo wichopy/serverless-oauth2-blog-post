@@ -1,224 +1,319 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
 
-    <script src="https://apis.google.com/js/api.js"></script>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welcome to Firebase Hosting</title>
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/5.9.3/firebase-app.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/5.9.3/firebase-auth.js"></script>
-    <script defer src="/__/firebase/5.9.3/firebase-firestore.js"></script>
-    <!-- initialize the SDK after all desired features are loaded -->
-    <script defer src="/__/firebase/init.js"></script>
+  <script src="https://apis.google.com/js/api.js"></script>
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; cursor: pointer; }
-      #message a.fetch { display: none; background: rgb(248, 17, 17); margin: 6px 0px; }
-      #message a.grant-offline { display: none; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
+  <!-- update the version number as needed -->
+  <script defer src="/__/firebase/5.9.3/firebase-app.js"></script>
+  <!-- include only the Firebase features as you need -->
+  <script defer src="/__/firebase/5.9.3/firebase-auth.js"></script>
+  <script defer src="/__/firebase/5.9.3/firebase-firestore.js"></script>
+  <!-- initialize the SDK after all desired features are loaded -->
+  <script defer src="/__/firebase/init.js"></script>
+
+  <style media="screen">
+    body {
+      background: #ECEFF1;
+      color: rgba(0, 0, 0, 0.87);
+      font-family: Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    #message {
+      background: white;
+      max-width: 360px;
+      margin: 100px auto 16px;
+      padding: 32px 24px;
+      border-radius: 3px;
+    }
+
+    #message h2 {
+      color: #ffa100;
+      font-weight: bold;
+      font-size: 16px;
+      margin: 0 0 8px;
+    }
+
+    #message h1 {
+      font-size: 22px;
+      font-weight: 300;
+      color: rgba(0, 0, 0, 0.6);
+      margin: 0 0 16px;
+    }
+
+    #message p {
+      line-height: 140%;
+      margin: 16px 0 24px;
+      font-size: 14px;
+    }
+
+    #message a {
+      display: block;
+      text-align: center;
+      background: #039be5;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: white;
+      padding: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #message a.fetch {
+      display: none;
+      background: rgb(248, 17, 17);
+      margin: 6px 0px;
+    }
+
+    #message a.grant-offline {
+      display: none;
+    }
+
+    #message a.fetch-from-server {
+      display: none;
+    }
+
+    #message,
+    #message a {
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    }
+
+    #load {
+      color: rgba(0, 0, 0, 0.4);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    @media (max-width: 600px) {
+
+      body,
+      #message {
+        margin-top: 0;
+        background: white;
+        box-shadow: none;
       }
-    </style>
 
-  </head>
-  <body>
-    <div id="message">
-      <h1>OAuth 2 Flow</h1>
-      <p id="user-message"></p>
-      <a class="fetch" target="_blank">Fetch</a>
-      <pre><div id="fetch-response"></div></pre>
-      <a class="fetch-from-server" target="_blank">Fetch From Server</a>
-      <a class="grant-offline" target="_blank">Grant Offline Access</a>
-      <a id="auth-button" target="_blank" ></a>
-    </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+      body {
+        border-top: 16px solid #ffa100;
+      }
+    }
+  </style>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+</head>
 
-        try {
-          let app = firebase.app();
-          let features = ['auth', 'database', 'firestore', 'messaging', 'storage'].filter(feature => typeof app[feature] === 'function');
-          document.getElementById('load').innerHTML = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          document.getElementById('load').innerHTML = 'Error loading the Firebase SDK, check the console.';
-        }
-        
-        // We can only have an access token after a user enters their credentials.
-        let accessToken
-        let firebaseUser
+<body>
+  <div id="message">
+    <h1>OAuth 2 Flow</h1>
+    <p id="user-message"></p>
+    Access Token:
+    <div id="access-token"></div>
+    <a class="grant-offline" target="_blank">Grant Offline Access</a>
+    <a class="fetch" target="_blank">Fetch on Client</a>
+    <a class="fetch-from-server" target="_blank">Fetch From Server</a>
+    <a id="auth-button" target="_blank"></a>
+    Fetch Response:
+    <pre><div id="fetch-response"></div></pre>
+  </div>
+  <p id="load">Firebase SDK Loading&hellip;</p>
 
-        var provider = new firebase.auth.GoogleAuthProvider();
-        const calendarEventsScope = 'https://www.googleapis.com/auth/calendar.events.readonly'
-        // Add a scope for an api you want to grab data from. In this example we are reading google calendar events for your main calendar.
-        provider.addScope(calendarEventsScope);
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+      // // The Firebase SDK is initialized and available here!
+      //
+      // firebase.auth().onAuthStateChanged(user => { });
+      // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
+      // firebase.messaging().requestPermission().then(() => { });
+      // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
+      //
+      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
-        const fetchButton = document.querySelector('a.fetch')
-        const grantOfflineButton = document.querySelector('a.grant-offline')
-        const fetchFromServerButton = document.querySelector('a.fetch-from-server')
-        const fetchResponse = document.querySelector('#fetch-response')
-        const authButton = document.getElementById("auth-button")
-        const userMessage = document.getElementById('user-message')
-        
-        // This function adds an access token to the google api client if available, otherwise it will reask you for your credentials.
-        function authenticateGoogleAPI () {
-          return new Promise((resolve, reject) => {
-            if (!accessToken) {
-              // Reentering the app as a logged in firebase user, we need to reauth to get a new access token.
-              firebaseUser.reauthenticateWithPopup(provider).then(result => {
-                console.log('reauthenticate result', result)
-                accessToken = result.credential.accessToken
-                gapi.client.setToken({
-                  access_token: accessToken
-                })
-                resolve()
-              }) 
-            } else {
-              // Already have access token from logging in
+      try {
+        let app = firebase.app();
+        let features = ['auth', 'database', 'firestore', 'messaging', 'storage'].filter(feature => typeof app[feature] === 'function');
+        document.getElementById('load').innerHTML = `Firebase SDK loaded with ${features.join(', ')}`;
+      } catch (e) {
+        console.error(e);
+        document.getElementById('load').innerHTML = 'Error loading the Firebase SDK, check the console.';
+      }
+
+      // We can only have an access token after a user enters their credentials.
+      let accessToken
+      let firebaseUser
+
+      var provider = new firebase.auth.GoogleAuthProvider();
+      const calendarEventsScope = 'https://www.googleapis.com/auth/calendar.events.readonly'
+      // Add a scope for an api you want to grab data from. In this example we are reading google calendar events for your main calendar.token
+      provider.addScope(calendarEventsScope);
+
+      const fetchButton = document.querySelector('a.fetch')
+      const grantOfflineButton = document.querySelector('a.grant-offline')
+      const fetchFromServerButton = document.querySelector('a.fetch-from-server')
+      const fetchResponse = document.querySelector('#fetch-response')
+      const authButton = document.getElementById("auth-button")
+      const userMessage = document.getElementById('user-message')
+      const accessTokenDisplay = document.getElementById("access-token")
+      // This function adds an access token to the google api client if available, otherwise it will reask you for your credentials.
+
+      function setAccessToken(token) {
+        accessToken = token
+        accessTokenDisplay.innerText = token
+      }
+
+      function getUserIdToken() {
+        return firebase.auth().currentUser.getIdToken(true)
+          .then(token => {
+            console.log(token)
+            // return 'poo'
+            return token
+          })
+          .catch(err => console.error(err));
+      }
+
+      function authenticateGoogleAPI() {
+        return new Promise((resolve, reject) => {
+          if (!accessToken) {
+            // Reentering the app as a logged in firebase user, we need to reauth to get a new access token.
+            firebaseUser.reauthenticateWithPopup(provider).then(result => {
+              console.log('reauthenticate result', result)
+              setAccessToken(result.credential.accessToken)
               gapi.client.setToken({
                 access_token: accessToken
               })
               resolve()
-            }
-          })
-        }
-
-        /*
-         * Google API
-         * */ 
-        function onGapiLoad () {
-          // Enable the api you want to use in the developer console
-          // https://console.developers.google.com/apis/library/
-          function fetchData () {
-            authenticateGoogleAPI()
-              .then(() => {
-                return gapi.client.request({
-                  // Pick an endpoint based on the scope and api you defined.
-                  path: 'https://www.googleapis.com/calendar/v3/calendars/primary/events',
-                  method: 'GET'
-                })
-              })
-              .then(result => {
-                console.log(result)
-                fetchResponse.innerText = result.body
-              })
-          }
-
-          function openConsentWindow() {
-            gapi.auth2.getAuthInstance().grantOfflineAccess({
-              scope: calendarEventsScope
-            }).then(res => {
-              console.log(res)
-              fetch(`http://localhost:5001/oauth-flows/us-central1/offlineGrant?uid=${firebaseUser.uid}&code=${res.code}`, {
-
-              })
-                .then(response => {
-                  console.log(response)
-                  return response.json()
-                })
-                .then(json => {
-                  console.log(json)
-                })
             })
-          }
-
-          function fetchDataOffline() {
-            fetch(`http://localhost:5001/oauth-flows/us-central1/events?uid=${firebaseUser.uid}`)
-              .then(response => {
-                return response.json()
-              })
-              .then(json => {
-                console.log(json)
-              })
-          }
-
-          gapi.client.init({
-            'apiKey': 'AIzaSyBWLnDa3OxY_QNenfQ-ikkRNLur9jFsoUA',
-            // clientId and scope are optional if auth is not required.
-            'clientId': '315834859490-9aibgf8ofbop7h0o050nahkpb01272ac.apps.googleusercontent.com',
-            'scope': ['profile',calendarEventsScope].join(' ')
-          }).then(function() {
-            // 3. Initialize and make the API request.
-            console.log('google api initialized')
-            fetchButton.addEventListener('click', fetchData)
-            grantOfflineButton.addEventListener('click', openConsentWindow)
-            fetchFromServerButton.addEventListener('click', fetchDataOffline)
-          });
-        }
-
-        // 1. Load the JavaScript client library.
-        gapi.load('client:auth2', onGapiLoad);
-
-        /*
-         *  Firebase
-         * */
-        function onSigninClick () {
-          firebase.auth().signInWithPopup(provider).then(function (result) {
-            console.log('Auth resposne from firebase:', result)
-            accessToken = result.credential.accessToken
-          })
-        }
-
-        function onSignoutClick () {
-          firebase.auth().signOut().then(function() {
-            console.log('Signout successful')
-          })
-        }
-
-        firebase.auth().onAuthStateChanged(function(user) {
-          if (user) {
-            console.log('auth state change, signed in!', user)
-            // User is signed in.
-            var displayName = user.displayName;
-            var email = user.email;
-            var emailVerified = user.emailVerified;
-            var photoURL = user.photoURL;
-            var isAnonymous = user.isAnonymous;
-            var uid = user.uid;
-            var providerData = user.providerData;
-            firebaseUser = user
-
-            authButton.innerText = 'Logout'
-            authButton.removeEventListener('click', onSigninClick)
-            authButton.addEventListener('click', onSignoutClick)
-            authButton.innerText = 'Logout'
-            userMessage.innerText = "Hello, " + displayName
-            fetchButton.style.display = 'inline-block'
-            grantOfflineButton.style.display = 'inline-block'
           } else {
-            console.log('auth state change, signed out :(')
-            authButton.removeEventListener('click', onSignoutClick)
-            authButton.addEventListener('click', onSigninClick)
-            authButton.innerText = 'Login'
-            userMessage.innerText = "Sign in and look around"
-            fetchButton.style.display = 'none'
-            grantOfflineButton.style.display = 'none'
+            // Already have access token from logging in
+            gapi.client.setToken({
+              access_token: accessToken
+            })
+            resolve()
           }
+        })
+      }
+
+      /*
+       * Google API
+       * */
+      function onGapiLoad() {
+        // Enable the api you want to use in the developer console
+        // https://console.developers.google.com/apis/library/
+        function fetchData() {
+          authenticateGoogleAPI()
+            .then(() => {
+              return gapi.client.request({
+                // Pick an endpoint based on the scope and api you defined.
+                path: 'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+                method: 'GET'
+              })
+            })
+            .then(result => {
+              console.log(result)
+              fetchResponse.innerText = result.body
+            })
+        }
+
+        function openConsentWindow() {
+          gapi.auth2.getAuthInstance().grantOfflineAccess({
+            scope: calendarEventsScope
+          }).then(res => {
+            console.log(res)
+            return getUserIdToken().then(idToken => fetch(`http://localhost:5001/oauth-flows/us-central1/offlineGrant?idToken=${idToken}&code=${res.code}`))
+          })
+            .then(response => {
+              console.log(response)
+              return response.text()
+            })
+            .then(json => {
+              console.log(json)
+            })
+        }
+
+        function fetchDataOffline() {
+          getUserIdToken()
+            .then(idToken => {
+              return fetch(`http://localhost:5001/oauth-flows/us-central1/events?idToken=${idToken}&refreshToken=${firebaseUser.refreshToken}`)
+            })
+            .then(response => {
+              console.log(response)
+              return response.text()
+            })
+            .then(json => {
+              console.log(json)
+              fetchResponse.innerText = JSON.stringify(JSON.parse(json), null, 2)
+            })
+        }
+
+        gapi.client.init({
+          'apiKey': 'AIzaSyBWLnDa3OxY_QNenfQ-ikkRNLur9jFsoUA',
+          // clientId and scope are optional if auth is not required.
+          'clientId': '315834859490-9aibgf8ofbop7h0o050nahkpb01272ac.apps.googleusercontent.com',
+          'scope': ['profile', calendarEventsScope].join(' ')
+        }).then(function () {
+          // 3. Initialize and make the API request.
+          console.log('google api initialized')
+          fetchButton.addEventListener('click', fetchData)
+          grantOfflineButton.addEventListener('click', openConsentWindow)
+          fetchFromServerButton.addEventListener('click', fetchDataOffline)
         });
+      }
+
+      // 1. Load the JavaScript client library.
+      gapi.load('client:auth2', onGapiLoad);
+
+      /*
+       *  Firebase
+       * */
+      function onSigninClick() {
+        firebase.auth().signInWithPopup(provider).then(function (result) {
+          console.log('Auth resposne from firebase:', result)
+          setAccessToken(result.credential.accessToken)
+        })
+      }
+
+      function onSignoutClick() {
+        firebase.auth().signOut().then(function () {
+          console.log('Signout successful')
+        })
+      }
+
+      firebase.auth().onAuthStateChanged(function (user) {
+        if (user) {
+          console.log('auth state change, signed in!', user)
+          // User is signed in.
+          var displayName = user.displayName;
+          firebaseUser = user
+
+          authButton.innerText = 'Logout'
+          authButton.removeEventListener('click', onSigninClick)
+          authButton.addEventListener('click', onSignoutClick)
+          authButton.innerText = 'Logout'
+          userMessage.innerText = "Hello, " + displayName
+          fetchButton.style.display = 'inline-block'
+          grantOfflineButton.style.display = 'inline-block'
+          fetchFromServerButton.style.display = 'inline-block'
+
+        } else {
+          console.log('auth state change, signed out :(')
+          authButton.removeEventListener('click', onSignoutClick)
+          authButton.addEventListener('click', onSigninClick)
+          authButton.innerText = 'Login'
+          userMessage.innerText = "Sign in and look around"
+          fetchButton.style.display = 'none'
+          grantOfflineButton.style.display = 'none'
+          fetchFromServerButton.style.display = 'none'
+        }
       });
-    </script>
-    
-  </body>
+
+    });
+  </script>
+
+</body>
+
 </html>
