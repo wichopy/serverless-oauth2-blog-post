@@ -179,11 +179,14 @@ exports.tokens = functions.https.onRequest(async (request, response) => {
   response.send({ accessToken: accessToken.token })
 })
 
-exports.eventsSubscription = functions.pubsub.topic('getEvents').onPublish((msg, ctx) => {
+exports.eventsSubscription = functions.pubsub.topic('getEvents').onPublish(async (msg, ctx) => {
+  // To test:
+  // npm run shell
+  // > eventsSubscription()
   const usersSnapshot = await app.firestore().collection("users").get()
-  usersSnapshot.forEach(user => {
+  usersSnapshot.forEach(async user => {
     const refreshToken = user.data().refreshToken
-    const events = getEvents(refreshToken)
-    console.log('Events for ', user.id, ': \n', events.data)
+    const events = await getEvents(refreshToken)
+    console.log('Events for ', user.id, ': \n', events.data.summary)
   })
 })
