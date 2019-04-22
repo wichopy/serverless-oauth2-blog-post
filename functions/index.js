@@ -58,10 +58,33 @@ const extractUid = async (idToken) => {
   return userInfo.uid
 }
 
+const getEvents = async refreshToken => {
+  console.log('refresh token', refreshToken)
+  oauth2Client.setCredentials({ refresh_token: refreshToken })
+
+  // https://github.com/googleaps/google-api-nodejs-client to find your api.
+  // If using VS Code, the intellisense is magical.
+  const calendarApiClient = google.calendar({
+    version: 'v3',
+    auth: oauth2Client,
+  })
+
+  let events
+  try {
+    events = await calendarApiClient.events.list({
+      calendarId: 'primary'
+    })
+  } catch (err) {
+    console.error(err)
+  }
+
+  return events
+}
+
 exports.offlineGrant = functions.https.onRequest(async (request, response) => {
   const { code, idToken } = request.query
   response.set('Access-Control-Allow-Origin', '*');
-  console.log('offlineGrant idToken:', idToken, 'code:', code)
+    console.log('offlineGrant idToken:', idToken, 'code:', code)
   if (!code) {
     response.status(400).send('Missing auth code')
     return
@@ -87,7 +110,6 @@ exports.offlineGrant = functions.https.onRequest(async (request, response) => {
   await app.firestore().collection("users").doc(uid).set({ refreshToken: token.refresh_token })
   console.log('save refresh token in user doc with uid', uid)
   response.send(token)
-
 })
 
 exports.events = functions.https.onRequest(async (request, response) => {
@@ -114,31 +136,14 @@ exports.events = functions.https.onRequest(async (request, response) => {
     return
   }
   const refreshToken = user.data().refreshToken
-  console.log('refresh token', refreshToken)
-  oauth2Client.setCredentials({ refresh_token: refreshToken })
 
-  // https://github.com/googleaps/google-api-nodejs-client to find your api.
-  // If using VS Code, the intellisense is magical.
-  const calendarApiClient = google.calendar({
-    //   // For development only, we want to restrict this to allowed origins.
-    //   response.set('Access-Control-Allow-Origin', '*');
-    //   response.send(events.data)
-    // })
-    version: 'v3',
-    auth: oauth2Client,
-  })
-
-  let events
+  const events = await getEvents(refreshToken)
+  
   try {
-    events = await calendarApiClient.events.list({
-      calendarId: 'primary'
-    })
+    response.send(events.data)
   } catch (err) {
-    console.error(err)
+    response.status(400).send('Error getting events for user', uid)
   }
-
-  // For development only, we want to restrict this to allowed origins.
-  response.send(events.data)
 })
 
 exports.tokens = functions.https.onRequest(async (request, response) => {
@@ -172,4 +177,13 @@ exports.tokens = functions.https.onRequest(async (request, response) => {
   oauth2Client.setCredentials({ refresh_token: refreshToken })
   const accessToken = await oauth2Client.getAccessToken()
   response.send({ accessToken: accessToken.token })
+})
+
+exports.eventsSubscription = functions.pubsub.topic('getEvents').onPublish((msg, ctx) => {
+  const usersSnapshot = await app.firestore().collection("users").get()
+  usersSnapshot.forEach(user => {
+    const refreshToken = user.data().refreshToken
+    const events = getEvents(refreshToken)
+    console.log('Events for ', user.id, ': \n', events.data)
+  })
 })
