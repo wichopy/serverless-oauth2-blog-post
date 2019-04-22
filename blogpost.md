@@ -1,10 +1,10 @@
 ## Intro
 
-While working on QUID's core features we're simultaneously testing them out on our own experiemental app ideas. Apps today have the luxury of being able to easily talk to each other using API's. Popular companies such as github, google, and facebook make it really easy for developers to securely access a user's data. The main driving technology behind this is OAuth2.
+While working on QUID's core features we're simultaneously testing them out on our own experiemental app ideas. Apps today have the luxury of being able to easily talk to each other using API's. Popular companies such as Github, Google, and Facebook make it really easy for developers to securely access a user's data. The main driving technology behind this is OAuth2.
 
 This post will be looking at how to implement auth in a serverless architecture. One thing to note is I will be using client libraries and not implementing the OAuth2 mechanisms on my own. That will come in a later post.
 
-Its important to note that whenever a third party maintained OAuth2 client is available, it should be used instead of trying to implement it on your own. OAuth2 is a standard but providers may have their own implementations that differ from others. Instead of trying to re invent the wheel I prefer to just hop in the car and drive.
+Its important to note that whenever a third party maintained OAuth2 client is available, it should be used instead of trying to implement it on your own. OAuth2 is a standard but providers may have slight variations in their own implementations that differ from others. Instead of trying to re-invent the wheel, I prefer to just hop in the car and drive.
 
 ## Pre-Requesites
 
@@ -36,11 +36,23 @@ Next, make a firebase project. Mine will be called oauth-flows.
 
 ![Screen-Shot-2019-04-16-at-12.43.01-AM](/content/images/2019/04/Screen-Shot-2019-04-16-at-12.43.01-AM.png)
 
+Steps 3-5 require a billing account to be associated with your GCP project if you want to run the project on live firebase server. Otherwise, everything works inside of the cloud functions emulator.
+
+Before deploying to live servers, add a billing account [here](https://console.cloud.google.com/billing/projects)
+
 Install the firebase cli tool in your dev environment.
 
 ```bash
     npm install -g firebase-tools
 ```
+
+And login
+
+```bash
+    firebase login
+```
+
+*Note: This cli login flow is using OAuth2!*
 
 This demo was bootstrapped using `firebase init` to set up the initial config files, html, and cloud function tools.
 
@@ -53,6 +65,10 @@ The github repo's master branch will show what we have after this initialization
 `git checkout google-signin`
 
 https://github.com/wichopy/serverless-oauth2-blog-post/compare/master...google-signin?expand=1
+
+Run a local web server to host public/index.html and visit localhost:5000 to play with the demo.
+
+`firebase serve --only hosting`
 
 The first flow we will look at will be very simple and will set us up for the later flows. Since we are using firebase, they have a great abstraction that simplifies authorizing your users. It supports integrations with all the major players such as Facebook, Github and Google. Some powerful features include persisted auth sessions and user tables for you to manage your users.
 
@@ -121,6 +137,9 @@ To add apis to a google / firebase project:
 https://console.developers.google.com/apis/library/
 
 Adding an api to a project will let google know that your client ID / api keys will be able to request access to the APIs we enabled.
+
+You should see this indicator after enabling a google api:
+![Screen-Shot-2019-04-21-at-9.59.26-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-21-at-9.59.26-PM.png)
 
 After enabling, we will need to add the events scope to our google auth provider.
 
@@ -230,6 +249,8 @@ This flow works for some use cases, but most likely we would want our users to j
 
 `git checkout offline-api-requests`
 
+https://github.com/wichopy/serverless-oauth2-blog-post/compare/google-api-request...offline-api-requests?expand=1
+
 In OAuth2 terms, being able to access a user's data while they are away from the app is called *offline access*. We will use this mechanism to improve our user experience.
 
 On the client, we will use the gapi `grantOfflineAccess` method to start this flow.
@@ -245,7 +266,7 @@ function openConsentWindow() {
 
 #### Cloud Functions have entered the game
 
-We will make our own microservice using cloud functions. These cloud functions can be run in your local env using the firebase cli command `firebase serve --only functions`. We should do all our development using the emulator so we don't eat into our quotas and if you don't have billing set up, your cloud functions cannot make api requests outside of the firebase realm.
+We will make our own microservice using cloud functions. These cloud functions can be run in your local env using the firebase cli command `firebase serve --only functions` or if you are inside of the `functions` folder, `npm run serve`. We should do all our development using the emulator so we don't eat into our quotas and if you don't have billing set up, your cloud functions cannot make api requests outside of the firebase realm.
 
 Lets take a look at our first cloud function which will be used to accept the access code returned from the grantOfflineAccess response.
 
@@ -348,7 +369,7 @@ Note, remember the refresh token on the firebase auth user object on the fronten
 
 #### Authenticating Server Side API Request using ID Tokens
 
-In the previous request, we passed a `uid` to our endpoint. We should not transmit a user ID this way as its not safe. How then, can we authenticate a request to our server and know that it was done by someone logged into our firebase app? One way to do it is by using the ID token.
+In the previous request, we passed a `uid` to our endpoint. We should not transmit a user ID this way as its not safe. How then can we authenticate a request to our server and know that it was done by someone logged into our firebase app? One way to do it is by using the ID token.
 
 The ID Token can be verified by publicly facing cloud functions before performing an authenticated API request. There is a handy firebase method to perform this check, `verifyIdToken`.
 
@@ -379,6 +400,8 @@ The ID Token can be verified by publicly facing cloud functions before performin
 ## 4. Client side authenticated API requests using server generated access tokens
 
 `git checkout request-client-access-token`
+
+https://github.com/wichopy/serverless-oauth2-blog-post/compare/offline-api-requests...request-client-access-token?expand=1
 
 Making api calls with cloud functions will add to your free quota. Depending how frequently you want to access these api calls, it might make more sense to let your frontend client make the calls using the method we outlined in Client side API Requests, by setting an access token to the `gapi` client. With our stored refresh token, we can now make access tokens on demand without having to ask the user to reauthenticate.
 
@@ -419,23 +442,83 @@ Now simply use this access token like we did in the Client Side API Requests sec
 
 ## 5. Periodic API Requests
 
+`git checkout scheduled-api-requests`
+
+https://github.com/wichopy/serverless-oauth2-blog-post/compare/request-client-access-token...scheduled-api-requests?expand=1
+
 We've covered different ways for calling API's from a frontend client and on the server, but how about if we want to call an API at a regular interval. An example of this is calling the google fitness API everyday to get a user's previous days step count for your next awesome fitness app. With cloud functions and GCP's Cloud scheduler it couldn't be any easier.
 
-* Create pubsub cloud func
-* Create pubsub topic
-* Create cloud scheduler job
+#### Create PubSub Topic
+In the google cloud console, go to Pub Sub and then the Topics section. You shouldn't see any topics here. Click on Create A Topic. We will create a topic called `getEvents`.
+
+![Screen-Shot-2019-04-21-at-11.17.32-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-21-at-11.17.32-PM.png)
+
+#### Create cloud scheduler Job
+Cloud scheduler is relatively new feature in GCP that lets you create scheduled tasks for all the supported hooks. We will be making one to talk to our pub sub topic. Go to the Cloud Scheduler module and click on Create Job.
+
+Most of the fields are self explanatory. The Frequency is written in Cron notation. To get an hourly job running, the syntax is ` 0 * * * *`. For now we have a blank payload.
+
+![Screen-Shot-2019-04-21-at-11.22.17-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-21-at-11.22.17-PM.png)
+
+#### Pubsub Cloud Function
+
+The last piece, our cloud function. The firebase cloud functions library has a few triggers we can take advantage of, with pubsub being one of them. This will get fired everytime the job runs.
+
+```javascript
+exports.eventsSubscription = functions
+  .pubsub
+  .topic('getEvents')
+  .onPublish(async (msg, ctx) => {
+    const usersSnapshot = await app.firestore().collection("users").get()
+    usersSnapshot.forEach(user => {
+      const refreshToken = user.data().refreshToken
+      const events = getEvents(refreshToken)
+      console.log('Events for ', user.id, ': \n', events.data)
+    })
+  })
+```
+
+If you want to pass data in the pubsub, you can fill it in with a JSON and parse it on the receiving end using a node `Buffer`. It would look something like this:
+
+In the job payload:
+```JSON
+{
+  "action": "NOTIFY_USERS",
+  "msg": "WAKE UP!!"
+}
+```
+
+In your cloud function.
+```javascript
+onPublish((msg, ctx) => {
+  let messageBody = msg.data
+    ? Buffer.from(msg.data, "base64").toString()
+    : null;
+
+  messageBody = JSON.parse(messageBody);
+}
+```
+
+To test the pubsub function locally, we can't use the serve command as it only serves https functions. To test, we can use the functions shell.
+
+```bash
+    cd functions # if you aren't in the functions folder already.
+    npm run shell # or npm start
+
+    # When the shell finishes booting up, event the following command:
+    eventsSubscription()
+```
+
+You should see your function trigger and have it call the apis for every user you have saved in your firestore.
 
 ## Conclusion
 
-We live a golden age right now where its easier than ever to talk to APIs. With these practical examples of how to auth and make API calls, I hope this post has inspired you with some techniques for making your next app. 
+We live a golden age right now where its easier than ever to talk to third party APIs. With these practical examples of how to make authenticate API calls, I hope this post has inspired you with some techniques for making your next app. 
 
-In future posts I would like to exapnd on these topics more by:
+In future posts I would like to expand on these topics more by:
 * Implementing our own OAuth2 mechanism using cloud functions
 * Make a medium complexity application that extensively uses OAuth2 and cloud services
 
 Until then, happy hacking!
 
 Will.
-
-Snippets:
-Firebase has deep integrations with google cloud platform, giving you tools from either platform to play with.
