@@ -90,11 +90,6 @@ exports.offlineGrant = functions.https.onRequest(async (request, response) => {
 
 })
 
-const extractUid = async (idToken) => {
-  const userInfo = await app.auth().verifyIdToken(idToken)
-  return userInfo.uid
-}
-
 exports.events = functions.https.onRequest(async (request, response) => {
   const { idToken } = request.query
   response.set('Access-Control-Allow-Origin', '*');
