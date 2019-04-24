@@ -1,6 +1,4 @@
-## Intro
-
-While working on QUID's core features we're simultaneously testing them out on our own experiemental app ideas. Apps today have the luxury of being able to easily talk to each other using API's. Popular companies such as Github, Google, and Facebook make it really easy for developers to securely access a user's data. The main driving technology behind this is OAuth2.
+While working on QUID's core features, we're simultaneously testing them out on our own experiemental app ideas. Apps today have the luxury of being able to easily talk to each other using API's, and popular companies such as Github, Google, and Facebook make it really easy for developers to securely access a user's data. The main technology behind this is OAuth2.
 
 This post will be looking at how to implement auth in a serverless architecture. One thing to note is I will be using client libraries and not implementing the OAuth2 mechanisms on my own. That will come in a later post.
 
@@ -23,7 +21,7 @@ The flows we will explore:
 4. Client side authenticated API requests using server generated access tokens
 5. Periodic API calls using Cloud Scheduler.
 
-Lets get started!
+Let's get started!
 
 ## Setup
 
@@ -72,11 +70,11 @@ Run a local web server to host public/index.html and visit localhost:5000 to pla
 
 The first flow we will look at will be very simple and will set us up for the later flows. Since we are using firebase, they have a great abstraction that simplifies authorizing your users. It supports integrations with all the major players such as Facebook, Github and Google. Some powerful features include persisted auth sessions and user tables for you to manage your users.
 
-Before being able to use one of the integrations, you must first enable it in the firebase console. Lets enable the Google auth integration by going to Authentication > Sign-in Method > Google in the Firebase console. Click the enable toggle and click save.
+Before being able to use one of the integrations, you must first enable it in the firebase console. Let's enable the Google auth integration by going to Authentication > Sign-in Method > Google in the Firebase console. Click the enable toggle and click save.
 
 ![Screen-Shot-2019-04-16-at-12.56.09-AM](/content/images/2019/04/Screen-Shot-2019-04-16-at-12.56.09-AM.png)
 
-Lets implement a flow we are all used to seeing, the pop up sign-in.
+Let's implement a flow we are all used to seeing, the pop up sign-in.
 
 ```javascript
 var provider = new firebase.auth.GoogleAuthProvider();
@@ -94,18 +92,20 @@ function onSignoutClick () {
 }
 ```
 
-Calling the `signInWithPopup` function will open a pop up and ask you for your google credentials. Behind the scenes, the auth code for token exchange happens on the firebase servers which will set up a new user in your user table if one does not exist and set the auth session in your browser. 
+Calling the `signInWithPopup` function will open a pop up and ask you for your Google credentials. Behind the scenes, the auth code for token exchange happens on the firebase servers which will set up a new user in your user table if one does not exist and set the auth session in your browser. Here is a diagram of what is happening.
+
+[Firebase Google Signin]
 
 The `result` from `signInWithPopup` contains tokens such as the access token, id token and refresh token that we'll use later. 
 
 `result.credentials`:
-![Screen-Shot-2019-04-21-at-5.29.45-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-21-at-5.29.45-PM.png)
+![Screen-Shot-2019-04-21-at-5.29.45-PM](/content/images/2019/04/Screen-Shot-2019-04-21-at-5.29.45-PM.png)
 `result.user`:
-![Screen-Shot-2019-04-21-at-5.28.08-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-21-at-5.28.08-PM.png)
+![Screen-Shot-2019-04-21-at-5.28.08-PM](/content/images/2019/04/Screen-Shot-2019-04-21-at-5.28.08-PM.png)
 
 #### Access Token 
 
-A short lived token that API's look for when making authenticated requests. This is only returned when a user enters their credentials (typing in the email/password or clicking on the already logged in google account).  The default expiry time for access tokens is 3600 ms (1 hour) but we can customize this to be as long or short as our application needs.
+A short lived token that API's look for when making authenticated requests. This is only returned when a user enters their credentials (typing in the email/password or clicking on the already logged in Google account).  The default expiry time for access tokens is 3600 seconds (1 hour) but we can customize this to be as long or short as our application needs.
 
 #### Refresh token
 
@@ -117,7 +117,7 @@ A token to identify a user in the OpenID Connect protocol, the defacto authentic
 
 Why do we have an ID token? If you watched the video linked above, its discussed that OAuth2 was designed for authentication, not authorization. The openID Connect protocol solves the authentication problem by standardizing the authentication data so all systems can talk to eachother the same way.
 
-This is a good intro, lets do some actual API requests now.
+This is a good intro, let's do some actual API requests now.
 
 ## 2. Client side API requests
 
@@ -125,7 +125,7 @@ This is a good intro, lets do some actual API requests now.
 
 https://github.com/wichopy/serverless-oauth2-blog-post/compare/google-signin...google-api-request
 
-Lets use Firebase's google auth implmentation and add additional scopes so we can get an access token that will read from one of google's many apis. In this example, we will read google calendar events.
+Let's use Firebase's Google auth implmentation and add additional scopes so we can get an access token that will read from one of Google's many apis. In this example, we will read Google calendar events.
 
 Before we can do this, we need to add the gapi javascript library to our html and enable the Calendar API in this project.
 Add to our `head` tag:
@@ -133,15 +133,19 @@ Add to our `head` tag:
   + <script src="https://apis.google.com/js/api.js"></script>
 ```
 
-To add apis to a google / firebase project:
+To add apis to a Google / Firebase project:
 https://console.developers.google.com/apis/library/
 
-Adding an api to a project will let google know that your client ID / api keys will be able to request access to the APIs we enabled.
+Adding an api to a project will let Google know that your client ID / api keys will be able to request access to the APIs we enabled.
 
-You should see this indicator after enabling a google api:
-![Screen-Shot-2019-04-21-at-9.59.26-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-21-at-9.59.26-PM.png)
+You should see this indicator after enabling a Google api:
+![Screen-Shot-2019-04-21-at-9.59.26-PM](/content/images/2019/04/Screen-Shot-2019-04-21-at-9.59.26-PM.png)
 
-After enabling, we will need to add the events scope to our google auth provider.
+Here is an overview of what we'll implement.
+
+[Client Side API Requests]
+
+After enabling, we will need to add the events scope to our Google auth provider.
 
 ```javascript
         var provider = new firebase.auth.GoogleAuthProvider();
@@ -155,9 +159,9 @@ This scope is needed so when the user provides their credentials, they will also
 
 This is what the user will see when trying to login after adding the calendar events scope.
 
-![Screen-Shot-2019-04-21-at-5.47.30-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-21-at-5.47.30-PM.png)
+![Screen-Shot-2019-04-21-at-5.47.30-PM](/content/images/2019/04/Screen-Shot-2019-04-21-at-5.47.30-PM.png)
 
-![Screen-Shot-2019-04-21-at-5.47.37-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-21-at-5.47.37-PM.png)
+![Screen-Shot-2019-04-21-at-5.47.37-PM](/content/images/2019/04/Screen-Shot-2019-04-21-at-5.47.37-PM.png)
 
 Now that we added the scope, we can add the code to make an api request after we get an access token:
 
@@ -235,15 +239,15 @@ and
     })
 ```
 
-`setToken` Add the access token to our google client, essentially authenticating it to make api requests.
+`setToken` Add the access token to our Google client, essentially authenticating it to make api requests.
 
 `request` Uses the access token that we set and adds it to request HEADers for us, abstracting this low level api so we can focus on what we really want, the data.
 
-The request for google calendar events was quite simple but you will need to look up the API you want to interact with to figure out what the request will look like. You may need to include required params in the `body` field in order to have a successful request. You should be able to find what you are looking for with a quick google search. For example, [this](https://developers.google.com/calendar/v3/reference/events/list) is what I used to construct the path seens above.
+The request for Google calendar events was quite simple but you will need to look up the API you want to interact with to figure out what the request will look like. You may need to include required params in the `body` field in order to have a successful request. You should be able to find what you are looking for with a quick Google search. For example, [this](https://developers.google.com/calendar/v3/reference/events/list) is what I used to construct the path seens above.
 
 Did you notice the `authenticateGoogleAPI` function? We only get an access token when we enter our credentials into the pop up. If an auth session exists already when your user reenters the app, they will need to re-enter their credentials in the pop up in order to get a new access token. 
 
-This flow works for some use cases, but most likely we would want our users to just authenticate once and be able to access their data as long as they are logged in. Lets look at how to do this in the next section. 
+This flow works for some use cases, but most likely we would want our users to just authenticate once and be able to access their data as long as they are logged in. Let's look at how to do this in the next section. 
 
 ## 3. Server side API requests 
 
@@ -252,6 +256,10 @@ This flow works for some use cases, but most likely we would want our users to j
 https://github.com/wichopy/serverless-oauth2-blog-post/compare/google-api-request...offline-api-requests?expand=1
 
 In OAuth2 terms, being able to access a user's data while they are away from the app is called *offline access*. We will use this mechanism to improve our user experience.
+
+The flow diagram below will show the grant offline access flow from when a user consents to us accessing their data to how we store a refresh token.
+
+[Server Side API Requests - Grant offline access]
 
 On the client, we will use the gapi `grantOfflineAccess` method to start this flow.
 ```javascript
@@ -268,7 +276,7 @@ function openConsentWindow() {
 
 We will make our own microservice using cloud functions. These cloud functions can be run in your local env using the firebase cli command `firebase serve --only functions` or if you are inside of the `functions` folder, `npm run serve`. We should do all our development using the emulator so we don't eat into our quotas and if you don't have billing set up, your cloud functions cannot make api requests outside of the firebase realm.
 
-Lets take a look at our first cloud function which will be used to accept the access code returned from the grantOfflineAccess response.
+Let's take a look at our first cloud function which will be used to accept the access code returned from the grantOfflineAccess response.
 
 ```javascript
 const admin = require("firebase-admin");
@@ -330,7 +338,13 @@ exports.offlineGrant = functions.https.onRequest(async (request, response) => {
 ```
 
 Great, we requested for a user's credentials and saved them to our database.
-Now whenever we want to access their data, all we need to do is grab the refresh token, pass it to the google api client, and call the api endpoint the token is scoped to. This is what it would look like with our calendar events example.
+Now whenever we want to access their data, all we need to do is grab the refresh token, pass it to the Google api client, and call the api endpoint the token is scoped to. 
+
+Here is a diagram showing this flow.
+
+[Server side API Requests - Authenticating and making request.]
+
+This is what it would look like with our calendar events example.
 
 ```javascript
  exports.events = functions.https.onRequest(async (request, response) => {
@@ -365,7 +379,7 @@ Now whenever we want to access their data, all we need to do is grab the refresh
 })
 ```
 
-Note, remember the refresh token on the firebase auth user object on the frontend? It will not work with googleapis as firebase took our ID token from the google login and made their own custom tokens with it. We need to use a refresh token created by our auth code and client secret in order to access a user's data offline.
+Note, remember the refresh token on the firebase auth user object on the frontend? It will not work with googleapis as firebase took our ID token from the Google login and made their own custom tokens with it. We need to use a refresh token created by our auth code and client secret in order to access a user's data offline.
 
 #### Authenticating Server Side API Request using ID Tokens
 
@@ -446,19 +460,19 @@ Now simply use this access token like we did in the Client Side API Requests sec
 
 https://github.com/wichopy/serverless-oauth2-blog-post/compare/request-client-access-token...scheduled-api-requests?expand=1
 
-We've covered different ways for calling API's from a frontend client and on the server, but how about if we want to call an API at a regular interval. An example of this is calling the google fitness API everyday to get a user's previous days step count for your next awesome fitness app. With cloud functions and GCP's Cloud scheduler it couldn't be any easier.
+We've covered different ways for calling API's from a frontend client and on the server, but how about if we want to call an API at a regular interval. An example of this is calling the Google fitness API everyday to get a user's previous days step count for your next awesome fitness app. With cloud functions and GCP's Cloud scheduler it couldn't be any easier.
 
 #### Create PubSub Topic
-In the google cloud console, go to Pub Sub and then the Topics section. You shouldn't see any topics here. Click on Create A Topic. We will create a topic called `getEvents`.
+In the Google Cloud console, go to Pub Sub and then the Topics section. You shouldn't see any topics here. Click on Create A Topic. We will create a topic called `getEvents`.
 
-![Screen-Shot-2019-04-21-at-11.17.32-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-21-at-11.17.32-PM.png)
+![Screen-Shot-2019-04-21-at-11.17.32-PM](/content/images/2019/04/Screen-Shot-2019-04-21-at-11.17.32-PM.png)
 
 #### Create cloud scheduler Job
-Cloud scheduler is relatively new feature in GCP that lets you create scheduled tasks for all the supported hooks. We will be making one to talk to our pub sub topic. Go to the Cloud Scheduler module and click on Create Job.
+Cloud scheduler is relatively new feature in GCP that let's you create scheduled tasks for all the supported hooks. We will be making one to talk to our pub sub topic. Go to the Cloud Scheduler module and click on Create Job.
 
 Most of the fields are self explanatory. The Frequency is written in Cron notation. To get an hourly job running, the syntax is ` 0 * * * *`. For now we have a blank payload.
 
-![Screen-Shot-2019-04-21-at-11.22.17-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-21-at-11.22.17-PM.png)
+![Screen-Shot-2019-04-21-at-11.22.17-PM](/content/images/2019/04/Screen-Shot-2019-04-21-at-11.22.17-PM.png)
 
 #### Pubsub Cloud Function
 
