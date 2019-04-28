@@ -94,7 +94,7 @@ function onSignoutClick () {
 
 Calling the `signInWithPopup` function will open a pop up and ask you for your Google credentials. Behind the scenes, the auth code for token exchange happens on the firebase servers which will set up a new user in your user table if one does not exist and set the auth session in your browser. Here is a diagram of what is happening.
 
-[Firebase Google Signin]
+![Screen-Shot-2019-04-28-at-4.00.44-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-28-at-4.00.44-PM.png)
 
 The `result` from `signInWithPopup` contains tokens such as the access token, id token and refresh token that we'll use later. 
 
@@ -143,7 +143,7 @@ You should see this indicator after enabling a Google api:
 
 Here is an overview of what we'll implement.
 
-[Client Side API Requests]
+![Screen-Shot-2019-04-28-at-4.03.28-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-28-at-4.03.28-PM.png)
 
 After enabling, we will need to add the events scope to our Google auth provider.
 
@@ -259,7 +259,7 @@ In OAuth2 terms, being able to access a user's data while they are away from the
 
 The flow diagram below will show the grant offline access flow from when a user consents to us accessing their data to how we store a refresh token.
 
-[Server Side API Requests - Grant offline access]
+![Screen-Shot-2019-04-28-at-4.05.58-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-28-at-4.05.58-PM.png)
 
 On the client, we will use the gapi `grantOfflineAccess` method to start this flow.
 ```javascript
@@ -342,7 +342,7 @@ Now whenever we want to access their data, all we need to do is grab the refresh
 
 Here is a diagram showing this flow.
 
-[Server side API Requests - Authenticating and making request.]
+![Screen-Shot-2019-04-28-at-4.11.50-PM](https://blog.quid.works/content/images/2019/04/Screen-Shot-2019-04-28-at-4.11.50-PM.png)
 
 This is what it would look like with our calendar events example.
 
