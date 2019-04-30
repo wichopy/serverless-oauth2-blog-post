@@ -298,14 +298,14 @@
         firebase.auth().signInWithPopup(provider).then(function (result) {
           console.log('Auth resposne from firebase:', result)
           setAccessToken(result.credential.accessToken)
+            .then(response => {
+              console.log(response)
+              return response.text()
+            })
+            .then(json => {
+              console.log(json)
+            })
         })
-          .then(response => {
-            console.log(response)
-            return response.text()
-          })
-          .then(json => {
-            console.log(json)
-          })
       }
 
       function onSignoutClick() {
