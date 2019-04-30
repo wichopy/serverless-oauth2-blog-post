@@ -4,7 +4,7 @@ const functions = require('firebase-functions');
 // 2. download firebase key file
 // firebase settings > service accounts
 // 3. download google api secrets
-// Go to https://console.cloud.google.com/apis/credentials?project=oauth-flows&authuser=3&organizationId=598037646388
+// Go to https://console.cloud.google.com/apis/credentials?project=oauth-flows
 // Go to client ID for web app
 // Copy client secret and client id (download JSON)
 // 4. init clients (firebase and google apis)
@@ -21,7 +21,7 @@ const { google } = require('googleapis');
 
 // https://console.cloud.google.com/apis/credentials/oauthclient/
 const googleSecrets = require("./google-secrets.json");
-// https://console.cloud.google.com/apis/credentials/oauthclient/
+// https://console.firebase.google.com/project/oauth-flows/settings/serviceaccounts/adminsdk
 const serviceAccount = require("./oauth-flows-service-key.json");
 
 const clientId = googleSecrets.web.client_id;
@@ -81,10 +81,11 @@ const getEvents = async refreshToken => {
   return events
 }
 
+// Cloud Functions
 exports.offlineGrant = functions.https.onRequest(async (request, response) => {
   const { code, idToken } = request.query
   response.set('Access-Control-Allow-Origin', '*');
-    console.log('offlineGrant idToken:', idToken, 'code:', code)
+  console.log('offlineGrant idToken:', idToken, 'code:', code)
   if (!code) {
     response.status(400).send('Missing auth code')
     return
@@ -138,7 +139,7 @@ exports.events = functions.https.onRequest(async (request, response) => {
   const refreshToken = user.data().refreshToken
 
   const events = await getEvents(refreshToken)
-  
+
   try {
     response.send(events.data)
   } catch (err) {
