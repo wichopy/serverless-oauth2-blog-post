@@ -52,35 +52,51 @@ const getToken = (code) => {
   })
 }
 
-const extractUid = async (idToken) => {
-  const userInfo = await app.auth().verifyIdToken(idToken)
-  console.log(idToken)
-  return userInfo.uid
+const authorize = async (req, res) => {
+  // https://github.com/firebase/functions-samples/blob/master/authorized-https-endpoint/functions/index.js
+  console.log('Check if request is authorized with Firebase ID token');
+
+  if ((!req.headers.authorization || !req.headers.authorization.startsWith('Bearer '))) {
+    console.error('No Firebase ID token was passed as a Bearer token in the Authorization header.',
+      'Make sure you authorize your request by providing the following HTTP header:',
+      'Authorization: Bearer <Firebase ID Token>');
+    res.status(403).send('Unauthorized');
+    return;
+  }
+
+  let idToken;
+  idToken = req.headers.authorization.split('Bearer ')[1];
+
+  try {
+    const decodedIdToken = await app.auth().verifyIdToken(idToken)
+    console.log('ID Token correctly decoded', decodedIdToken);
+    req.user = decodedIdToken;
+    return decodedIdToken;
+  } catch (error) {
+    console.error('Error while verifying Firebase ID token:', error);
+    res.status(403).send('Unauthorized');
+    return;
+  }
 }
 
 // Cloud Functions
 exports.offlineGrant = functions.https.onRequest(async (request, response) => {
-  const { code, idToken } = request.query
+  const authUser = await authorize(request, response)
+
+  if (!authUser) {
+    return
+  }
+
+  const { code } = request.query
   response.set('Access-Control-Allow-Origin', '*');
-  console.log('offlineGrant idToken:', idToken, 'code:', code)
   if (!code) {
     response.status(400).send('Missing auth code')
     return
   }
-  if (!idToken) {
-    response.status(400).send('Missing idToken')
-    return
-  }
 
-  let uid
-  try {
-    uid = await extractUid(idToken)
-  } catch (err) {
-    response.status(400).send('Error verifying id token')
-    return
-  }
+  const uid = authUser.uid
 
-  console.log('uid', uid)
+  console.log('Users uid:', uid)
 
   const token = await getToken(code)
 
@@ -92,28 +108,24 @@ exports.offlineGrant = functions.https.onRequest(async (request, response) => {
 })
 
 exports.events = functions.https.onRequest(async (request, response) => {
-  const { idToken } = request.query
+  const authUser = await authorize(request, response)
+
+  if (!authUser) {
+    return
+  }
+
   response.set('Access-Control-Allow-Origin', '*');
-  if (!idToken) {
-    response.status(400).send('Missing id token')
-    return
-  }
+  const uid = authUser.uid
 
-  let uid
-  try {
-    uid = await extractUid(idToken)
-  } catch (err) {
-    response.status(400).send('Error verifying id token')
-    return
-  }
+  console.log('Users uid:', uid)
 
-  console.log('uid', uid)
   const user = await app.firestore().collection("users").doc(uid).get();
-  console.log(user)
+  console.log('Saved user:', user)
   if (!user.exists) {
     response.status(400).send('No credentials saved for this user.')
     return
   }
+
   const refreshToken = user.data().refreshToken
   console.log('refresh token', refreshToken)
   oauth2Client.setCredentials({ refresh_token: refreshToken })

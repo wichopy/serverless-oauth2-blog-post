@@ -239,7 +239,14 @@
             scope: calendarEventsScope
           }).then(res => {
             console.log(res)
-            return getUserIdToken().then(idToken => fetch(`http://localhost:5001/oauth-flows/us-central1/offlineGrant?idToken=${idToken}&code=${res.code}`))
+            return getUserIdToken().then(idToken => fetch(`http://localhost:5001/oauth-flows/us-central1/offlineGrant?code=${res.code}`, {
+              method: 'GET',
+              withCredentials: true,
+              credentials: 'include',
+              headers: {
+                'Authorization': `Bearer ${idToken}`
+              }
+            }))
           })
             .then(response => {
               console.log(response)
@@ -253,7 +260,14 @@
         function fetchDataOffline() {
           getUserIdToken()
             .then(idToken => {
-              return fetch(`http://localhost:5001/oauth-flows/us-central1/events?idToken=${idToken}`)
+              return fetch(`http://localhost:5001/oauth-flows/us-central1/events`, {
+                method: 'GET',
+                withCredentials: true,
+                credentials: 'include',
+                headers: {
+                  'Authorization': `Bearer ${idToken}`
+                }
+              })
             })
             .then(response => {
               console.log(response)
